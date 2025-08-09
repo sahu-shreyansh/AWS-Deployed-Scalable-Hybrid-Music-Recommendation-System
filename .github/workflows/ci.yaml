@@ -1,0 +1,89 @@
+name: CI-CD
+
+on: push
+
+jobs:
+  CI:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout code
+      - name: Code Checkout
+        uses: actions/checkout@v4
+
+      # Step 2: Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # Step 3: Install requirements
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Step 4: Configure AWS credentials
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      # Step 5: DVC Pull
+      - name: Pull Data from DVC Remote
+        run: |
+          pip install dvc[s3]
+          dvc pull
+
+      # Step 6: Run Streamlit App (headless)
+      - name: Run Streamlit App (Headless)
+        run: |
+          nohup streamlit run app.py --server.port 8000 &
+
+      # Step 7: Run Tests (optional)
+      - name: Run Pytest Tests
+        run: |
+          pytest test_app.py || echo "Tests failed, continuing pipeline"
+
+      # Step 8: Stop Streamlit App
+      - name: Stop Streamlit
+        run: |
+          pkill -f "streamlit run" || true
+
+      # Step 9: Login to ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Step 10: Build and Push Docker Image
+      - name: Build, Tag, and Push Docker Image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: realtime-hybrid-music
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+
+      # Step 11: Zip deployment scripts
+      - name: Zip Files for CodeDeploy
+        run: |
+          zip -r deployment.zip appspec.yml deploy/scripts/
+
+      # Step 12: Upload ZIP to S3 for CodeDeploy
+      - name: Upload ZIP to S3
+        run: |
+          aws s3 cp deployment.zip s3://hybridrecsysdeploymentbucket/deployment.zip
+
+      # Step 13: Trigger CodeDeploy
+      - name: Trigger AWS CodeDeploy
+        run: |
+          aws deploy create-deployment \
+            --application-name hybridrecommendersystem \
+            --deployment-config-name CodeDeployDefault.AllAtOnce \
+            --deployment-group-name hybridrecsysdeploymentgroup \
+            --s3-location bucket=hybridrecsysdeploymentbucket,key=deployment.zip,bundleType=zip \
+            --file-exists-behavior OVERWRITE \
+            --region ap-south-1

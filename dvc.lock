@@ -1,0 +1,86 @@
+schema: '2.0'
+stages:
+  data_cleaning:
+    cmd: python data_cleaning.py
+    deps:
+    - path: data/Music Info.csv
+      hash: md5
+      md5: e63b74919a3cdada5c804df4666391c9
+      size: 14985870
+    - path: data_cleaning.py
+      hash: md5
+      md5: 1fe67a28d329e1a186ef0b0dfc9d8cfc
+      size: 2026
+    outs:
+    - path: data/cleaned_data.csv
+      hash: md5
+      md5: ad73ab9b7c97fed0f3cc26fc9b24f8c6
+      size: 13712182
+  transform_data:
+    cmd: python content_based_filtering.py
+    deps:
+    - path: content_based_filtering.py
+      hash: md5
+      md5: cd95ac96f6b93d0e11359b4fc6f612e0
+      size: 5888
+    - path: data/cleaned_data.csv
+      hash: md5
+      md5: ad73ab9b7c97fed0f3cc26fc9b24f8c6
+      size: 13712182
+    - path: data_cleaning.py
+      hash: md5
+      md5: 1fe67a28d329e1a186ef0b0dfc9d8cfc
+      size: 2026
+    outs:
+    - path: data/transformed_data.npz
+      hash: md5
+      md5: 97a65e17f0579e5ae56dc118a9b6c59c
+      size: 4523508
+    - path: transformer.joblib
+      hash: md5
+      md5: b47c5e6eb3f9917a9ddd4b450d6a4d18
+      size: 193262
+  interaction_data:
+    cmd: python collaborative_filtering.py
+    deps:
+    - path: collaborative_filtering.py
+      hash: md5
+      md5: e455f77ab019ba98da2d44fbd5c2846b
+      size: 5201
+    - path: data/User Listening History.csv
+      hash: md5
+      md5: 3a12e713844195171c7040c051d6d4ae
+      size: 602515573
+    - path: data/cleaned_data.csv
+      hash: md5
+      md5: ad73ab9b7c97fed0f3cc26fc9b24f8c6
+      size: 13712182
+    outs:
+    - path: data/collab_filtered_data.csv
+      hash: md5
+      md5: f0f182d757a9837caa7ff619cab9ffd0
+      size: 8260460
+    - path: data/interaction_matrix.npz
+      hash: md5
+      md5: db029a4a21f320a28941dba66731df91
+      size: 35259351
+    - path: data/track_ids.npy
+      hash: md5
+      md5: 1a83b610e7d7fb22e73b37575fe794b9
+      size: 852472
+  transformed_filtered_data:
+    cmd: python transform_filtered_data.py
+    deps:
+    - path: data/collab_filtered_data.csv
+      hash: md5
+      md5: f0f182d757a9837caa7ff619cab9ffd0
+      size: 8260460
+    - path: transform_filtered_data.py
+      hash: md5
+      md5: d4df2d151f1aa5b985ac7c13253af6e9
+      size: 742
+    outs:
+    - path: data/transformed_hybrid_data.npz
+      hash: md5
+      md5: 4787d5ba5c46bc67774443a673f79050
+      size: 2977347
