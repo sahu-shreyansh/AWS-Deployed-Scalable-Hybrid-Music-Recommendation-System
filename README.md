@@ -141,9 +141,9 @@ streamlit run streamlit_app.py
 
 ## 🙋‍♂️ Author
 
-**Pawan Bonde**
+**Shreyansh Sahu**
 Big Data & ML Engineer | CDAC PG-DBDA
-📧 [pssbonde@gmail.com](mailto:pssbonde@gmail.com)
+📧 [sahushreyansh692@gmail.com](mailto:sahushreyansh692@gmail.com)
 
 ---
 
