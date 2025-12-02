@@ -4,31 +4,35 @@ import joblib
 from sklearn.preprocessing import MinMaxScaler, StandardScaler, OneHotEncoder
 from category_encoders.count import CountEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.compose import ColumnTransformer
+from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.metrics.pairwise import cosine_similarity
 from data_cleaning import data_for_content_filtering
 from scipy.sparse import save_npz
+import os
 
 # Cleaned Data Path
 CLEANED_DATA_PATH = "data/cleaned_data.csv"
 
-# cols to transform
-frequency_enode_cols = ['year']
-ohe_cols = ['artist',"time_signature","key"]
+# Separate column lists for clarity and robust preprocessing
+numerical_cols = ["duration_ms","loudness","tempo", "danceability","energy","speechiness",
+                  "acousticness","instrumentalness","liveness","valence"]
+
+categorical_cols = ['artist', "time_signature", "key", 'year']
+
+# Text column for TF-IDF Vectorization
 tfidf_col = 'tags'
-standard_scale_cols = ["duration_ms","loudness","tempo"]
-min_max_scale_cols = ["danceability","energy","speechiness","acousticness","instrumentalness","liveness","valence"]
 
 
 def train_transformer(data):
     """
     Trains a ColumnTransformer on the provided data and saves the transformer to a file.
     The ColumnTransformer applies the following transformations:
-    - Frequency Encoding using CountEncoder on specified columns.
-    - One-Hot Encoding using OneHotEncoder on specified columns.
-    - TF-IDF Vectorization using TfidfVectorizer on a specified column.
-    - Standard Scaling using StandardScaler on specified columns.
-    - Min-Max Scaling using MinMaxScaler on specified columns.
+    - One-Hot Encoding on categorical columns.
+    - Standard Scaling on all numerical columns.
+    - TF-IDF Vectorization on the text column.
+    
+    This version is more robust by using a pipeline for numerical and categorical features.
+
     Parameters:
     data (pd.DataFrame): The input data to be transformed.
     Returns:
@@ -36,20 +40,34 @@ def train_transformer(data):
     Saves:
     transformer.joblib: The trained ColumnTransformer object.
     """
-    # transformer 
-    transformer = ColumnTransformer(transformers=[
-        ("frequency_encode", CountEncoder(normalize=True,return_df=True), frequency_enode_cols),
-        ("ohe", OneHotEncoder(handle_unknown="ignore"), ohe_cols),
-        ("tfidf", TfidfVectorizer(max_features=85), tfidf_col),
-        ("standard_scale", StandardScaler(), standard_scale_cols),
-        ("min_max_scale", MinMaxScaler(), min_max_scale_cols)
-    ],remainder='passthrough',n_jobs=-1,force_int_remainder_cols=False)
+    
+    # Create the preprocessing steps
+    numerical_transformer = StandardScaler()
+    categorical_transformer = OneHotEncoder(handle_unknown="ignore")
+    
+    # The `TfidfVectorizer` requires a 1D array, so we'll handle it separately
+    text_transformer = TfidfVectorizer(max_features=85)
+    
+    # Use ColumnTransformer to apply different transformations to different columns
+    preprocessor = ColumnTransformer(
+        transformers=[
+            # Apply StandardScaler to all numerical columns
+            ('num', numerical_transformer, numerical_cols),
+            # Apply OneHotEncoder to all categorical columns
+            ('cat', categorical_transformer, categorical_cols),
+            # Apply TfidfVectorizer to the text column
+            ('tfidf', text_transformer, [tfidf_col])
+        ],
+        # 'passthrough' will keep any columns not specified above
+        remainder='drop',
+        n_jobs=-1
+    )
 
     # fit the transformer
-    transformer.fit(data)
+    preprocessor.fit(data)
 
     # save the transformer
-    joblib.dump(transformer, "transformer.joblib")
+    joblib.dump(preprocessor, "transformer.joblib")
     
 
 def transform_data(data):
@@ -124,7 +142,7 @@ def content_recommendation(song_name,artist_name,songs_data, transformed_data, k
     # generate the input vector
     input_vector = transformed_data[song_index].reshape(1,-1)
     # calculate similarity scores
-    similarity_scores = calculate_similarity_scores(input_vector, transformed_data)
+    similarity_scores = calculate_similarity_scores(input_vector, transformed_data).flatten()
     # get the top k songs
     top_k_songs_indexes = np.argsort(similarity_scores.ravel())[-k-1:][::-1]
     # get the top k songs names
@@ -148,6 +166,11 @@ def main(data_path):
     data = pd.read_csv(data_path)
     # clean the data
     data_content_filtering = data_for_content_filtering(data)
+    
+    for col in categorical_cols:
+        if col in data_content_filtering.columns:
+            data_content_filtering[col] = data_content_filtering[col].astype('category')
+    
     # train the transformer
     train_transformer(data_content_filtering)
     # transform the data
