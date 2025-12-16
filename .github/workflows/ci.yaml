@@ -31,10 +31,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Verify AWS Identity
-        run: aws sts get-caller-identity
-
-
       # Step 5: DVC Pull
       - name: Pull Data from DVC Remote
         run: |
