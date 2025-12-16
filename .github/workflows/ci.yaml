@@ -75,7 +75,7 @@ jobs:
       # Step 12: Upload ZIP to S3 for CodeDeploy
       - name: Upload ZIP to S3
         run: |
-          aws s3 cp deployment.zip s3://hybridrecsysdeploymentbucket/deployment.zip
+          aws s3 cp deployment.zip s3://hybrid-music-recsys-remote/deployment.zip
 
       # Step 13: Trigger CodeDeploy
       - name: Trigger AWS CodeDeploy
