@@ -3,4 +3,3 @@
 ['remote "myremote"']
     url = s3://hybrid-music-recsys-remote
     region = ap-south-1
-    profile = default
