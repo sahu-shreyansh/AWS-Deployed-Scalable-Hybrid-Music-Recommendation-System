@@ -84,6 +84,6 @@ jobs:
             --application-name hybridrecommendersystem \
             --deployment-config-name CodeDeployDefault.AllAtOnce \
             --deployment-group-name hybridrecsysdeploymentgroup \
-            --s3-location bucket=hybridrecsysdeploymentbucket,key=deployment.zip,bundleType=zip \
+            --s3-location bucket=hybrid-music-recsys-remote,key=deployment.zip,bundleType=zip \
             --file-exists-behavior OVERWRITE \
             --region ap-south-1
