@@ -122,15 +122,23 @@ class HybridRecommenderSystem:
             raise ValueError("Song/artist does not exist in your database")
         song_index = song_row.index[0]
 
-        # Ensure numeric numpy array for transformed_matrix
-        if isinstance(transformed_matrix, pd.DataFrame):
+        # --- OPTIMIZED MEMORY HANDLING ---
+        # 1. Check if input is a Sparse Matrix (do NOT convert to dense)
+        if hasattr(transformed_matrix, 'toarray'):
+            input_vector = transformed_matrix[song_index] # Slice 1 row (stays sparse)
+            matrix = transformed_matrix                   # Keep full matrix sparse
+            
+        # 2. Check if input is a DataFrame
+        elif isinstance(transformed_matrix, pd.DataFrame):
             matrix = transformed_matrix.select_dtypes(include=[np.number]).to_numpy()
-        elif hasattr(transformed_matrix, 'toarray'):
-            matrix = transformed_matrix.toarray()
+            input_vector = matrix[song_index].reshape(1, -1)
+            
+        # 3. Fallback for standard Arrays
         else:
             matrix = np.array(transformed_matrix)
-
-        input_vector = matrix[song_index].reshape(1, -1)
+            input_vector = matrix[song_index].reshape(1, -1)
+            
+        # Calculate similarity (cosine_similarity handles sparse inputs efficiently)
         content_similarity_scores = cosine_similarity(input_vector, matrix).flatten()
         return content_similarity_scores
 
