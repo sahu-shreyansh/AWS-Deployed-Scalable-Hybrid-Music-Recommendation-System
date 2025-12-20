@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 from numpy import load
 from scipy.sparse import load_npz
-from joblib import load as joblib_load
 from content_based_filtering import content_recommendation
 from collaborative_filtering import collaborative_recommendation
 from hybrid_recommendations import HybridRecommenderSystem
@@ -121,8 +120,8 @@ def load_app_data():
             'track_ids': load("data/track_ids.npy", allow_pickle=True),
             'filtered_data': pd.read_csv("data/collab_filtered_data.csv"),
             'interaction_matrix': load_npz("data/interaction_matrix.npz"),
-            'transformed_hybrid_data': load_npz("data/transformed_hybrid_data.npz"),
-            'transformer': joblib_load('transformer.joblib')
+            'transformed_hybrid_data': load_npz("data/transformed_hybrid_data.npz")
+
         }
     except Exception as e:
         st.error(f"Error loading data: {e}")
@@ -136,7 +135,7 @@ track_ids = data['track_ids']
 filtered_data = data['filtered_data']
 interaction_matrix = data['interaction_matrix']
 transformed_hybrid_data = data['transformed_hybrid_data']
-transformer = data['transformer']
+
 
 MOOD_PRESETS = {
     "😊 Happy": {"danceability": 0.8, "energy": 0.75, "valence": 0.9, "tempo": 130.0, "acousticness": 0.2, "instrumentalness": 0.1, "liveness": 0.3, "loudness": -5.0, "key": 2},
