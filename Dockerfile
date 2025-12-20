@@ -1,4 +1,5 @@
 # set up the base image
+# (Keeping 3.12 as per your file, but ensure your CI/CD matches this version)
 FROM python:3.12
 
 # set the working directory
@@ -8,7 +9,7 @@ WORKDIR /app/
 COPY requirements.txt .
 
 # install the requirements
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy all required data files at once
 COPY ./data/collab_filtered_data.csv \
@@ -19,7 +20,6 @@ COPY ./data/collab_filtered_data.csv \
      ./data/transformed_hybrid_data.npz \
      ./data/
 
-
 # Copy all required Python scripts at once
 COPY app.py \
      collaborative_filtering.py \
@@ -28,6 +28,11 @@ COPY app.py \
      data_cleaning.py \
      transform_filtered_data.py \
      ./
+
+# --- Disable Security Warnings for IP Access ---
+ENV STREAMLIT_SERVER_ENABLE_CORS=false
+ENV STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false
+# ---------------------------------------------------
 
 # expose the port on the container
 EXPOSE 8000
